@@ -68,10 +68,13 @@ async def cool(ctx):
         await ctx.send(f'No, {ctx.subcommand_passed} is not cool')
 
 
-@cool.command(name='bot')
-async def _bot(ctx):
-    """Is the bot cool?"""
-    await ctx.send('Yes, the bot is cool.')
+@bot.command()
+async def mem(ctx):
+    with open('mem/1.jpg', 'rb') as f:
+        # В переменную кладем файл, который преобразуется в файл библиотеки Discord!
+        picture = discord.File(f)
+   # Можем передавать файл как параметр!
+    await ctx.send(file=picture)
 
 
-bot.run('ТОКЕН ТВОЕГО БОТА')
+bot.run('Токен')
