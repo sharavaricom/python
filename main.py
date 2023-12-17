@@ -1,80 +1,61 @@
 import discord
 from discord.ext import commands
-import random
+import sqlite3
 
-description = '''An example bot to showcase the discord.ext.commands extension
-module.
+# Создаем объект бота
+bot = commands.Bot(command_prefix='!')
+db_connection = sqlite3.connect('ecology_bot.db')
+cursor = db_connection.cursor()
 
-There are a number of utility commands being showcased here.'''
-
-intents = discord.Intents.default()
-intents.members = True
-intents.message_content = True
-
-bot = commands.Bot(command_prefix='?', description=description, intents=intents)
-
+# Создаем таблицу для хранения баллов
+cursor.execute('''CREATE TABLE IF NOT EXISTS scores (
+                    user_id TEXT PRIMARY KEY,
+                    points INTEGER DEFAULT 0
+                )''')
+db_connection.commit()
 
 @bot.event
-async def on_ready():
-    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
-    print('------')
-
-
-@bot.command()
-async def add(ctx, left: int, right: int):
-    """Adds two numbers together."""
-    await ctx.send(left + right)
-
-
-@bot.command()
-async def roll(ctx, dice: str):
-    """Rolls a dice in NdN format."""
-    try:
-        rolls, limit = map(int, dice.split('d'))
-    except Exception:
-        await ctx.send('Format has to be in NdN!')
+async def on_message(message):
+    if message.author == bot.user:
         return
 
-    result = ', '.join(str(random.randint(1, limit)) for r in range(rolls))
-    await ctx.send(result)
+    if message.content.lower() == "ecology":
+        user_id = str(message.author.id)
 
+        # Получаем количество баллов пользователя
+        cursor.execute("SELECT points FROM scores WHERE user_id=?", (user_id,))
+        result = cursor.fetchone()
 
-@bot.command(description='For when you wanna settle the score some other way')
-async def choose(ctx, *choices: str):
-    """Chooses between multiple choices."""
-    await ctx.send(random.choice(choices))
+        if result is None:
+            # Если пользователя нет в базе данных, добавляем его
+            cursor.execute("INSERT INTO scores (user_id) VALUES (?)", (user_id,))
+            db_connection.commit()
+            points = 0
+        else:
+            points = result[0]
 
+        # Выдаем баллы
+        points += 1
 
-@bot.command()
-async def repeat(ctx, times: int, content='repeating...'):
-    """Repeats a message multiple times."""
-    for i in range(times):
-        await ctx.send(content)
+        # Обновляем количество баллов в базе данных
+        cursor.execute("UPDATE scores SET points=? WHERE user_id=?", (points, user_id))
+        db_connection.commit()
 
+        # Список заданий
+        tasks = [
+            "Задание 1: Изучите влияние человеческой деятельности на окружающую среду.",
+            "Задание 2: Проведите исследование о важности переработки отходов.",
+            "Задание 3: Расскажите о растениях и животных, находящихся под угрозой исчезновения."
+        ]
 
-@bot.command()
-async def joined(ctx, member: discord.Member):
-    """Says when a member joined."""
-    await ctx.send(f'{member.name} joined {discord.utils.format_dt(member.joined_at)}')
+        # Отправляем список заданий в чат
+        task_list = "\n".join(tasks)
+        await message.channel.send(f"Список заданий по экологии:\n{task_list}")
 
+        # Отправляем количество баллов в чат
+        await message.channel.send(f"{message.author.mention}, у вас {points} баллов!")
 
-@bot.group()
-async def cool(ctx):
-    """Says if a user is cool.
+    await bot.process_commands(message)
 
-    In reality this just checks if a subcommand is being invoked.
-    """
-    if ctx.invoked_subcommand is None:
-        await ctx.send(f'No, {ctx.subcommand_passed} is not cool')
-
-
-@bot.command()
-async def mem(ctx):
-    with open('mem/1.jpg', 'rb') as f:
-        # В переменную кладем файл, который преобразуется в файл библиотеки Discord!
-        picture = discord.File(f)
-   # Можем передавать файл как параметр!
-    await ctx.send(file=picture)
-
-
-bot.run('Токен')
+# Запускаем бота
+bot.run('ТВОЙ_ТОКЕН_БОТА')
