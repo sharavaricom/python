@@ -58,4 +58,4 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # Запускаем бота
-bot.run('ТВОЙ_ТОКЕН_БОТА')
+bot.run('MTE3ODI1NTMwMDY4ODYwOTI5MA.G3kOEv.-6vv5xCZiiCTNvlCY8Gy4QMX2NLnRV3Bg8O_yw')
