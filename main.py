@@ -1,61 +1,19 @@
-import discord
-from discord.ext import commands
-import sqlite3
+from flask import Flask 
+import random 
 
-# Создаем объект бота
-bot = commands.Bot(command_prefix='!')
-db_connection = sqlite3.connect('ecology_bot.db')
-cursor = db_connection.cursor()
+app = Flask(__name__)
+fact_list=['Законодательство США допускало отправку детей по почте до 1913 года.','В современной истории есть промежуток времени, когда на счетах компании «Apple», было больше средств, чем у американского правительства.','Среднее облако весит порядка 500 тонн, столько же весят 80 слонов.']
 
-# Создаем таблицу для хранения баллов
-cursor.execute('''CREATE TABLE IF NOT EXISTS scores (
-                    user_id TEXT PRIMARY KEY,
-                    points INTEGER DEFAULT 0
-                )''')
-db_connection.commit()
+@app.route("/") 
+def index(): 
+    return f'<h1>Привет! Здесь ты можешь узнать пару интересных фактов</h1><a href="/random_fact">Посмотреть случайный факт!</a><p><h1>А Здесь ты можешь посмотреть погоду</h1><a href="/weather">Погода</a></p>'
 
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
+@app.route("/random_fact") 
+def facts(): 
+    return f'<p>{random.choice(fact_list)}</p>' 
 
-    if message.content.lower() == "ecology":
-        user_id = str(message.author.id)
+@app.route("/weather") 
+def weath(): 
+    return f'<p><iframe src="https://www.meteoblue.com/en/weather/widget/daily/ip_romania_675514?geoloc=fixed&days=7&tempunit=FAHRENHEIT&windunit=METER_PER_SECOND&precipunit=MILLIMETER&coloured=coloured&pictoicon=0&pictoicon=1&maxtemperature=0&maxtemperature=1&mintemperature=0&mintemperature=1&windspeed=0&windspeed=1&windgust=0&windgust=1&winddirection=0&winddirection=1&uv=0&uv=1&humidity=0&humidity=1&precipitation=0&precipitation=1&precipitationprobability=0&precipitationprobability=1&spot=0&spot=1&pressure=0&pressure=1&layout=light"  frameborder="0" scrolling="NO" allowtransparency="true" sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox" style="width: 378px; height: 467px"></iframe><div><!-- DO NOT REMOVE THIS LINK --><a href="https://www.meteoblue.com/en/weather/week/ip_romania_675514?utm_source=weather_widget&utm_medium=linkus&utm_content=daily&utm_campaign=Weather%2BWidget" target="_blank" rel="noopener">meteoblue</a></div></p>' 
 
-        # Получаем количество баллов пользователя
-        cursor.execute("SELECT points FROM scores WHERE user_id=?", (user_id,))
-        result = cursor.fetchone()
-
-        if result is None:
-            # Если пользователя нет в базе данных, добавляем его
-            cursor.execute("INSERT INTO scores (user_id) VALUES (?)", (user_id,))
-            db_connection.commit()
-            points = 0
-        else:
-            points = result[0]
-
-        # Выдаем баллы
-        points += 1
-
-        # Обновляем количество баллов в базе данных
-        cursor.execute("UPDATE scores SET points=? WHERE user_id=?", (points, user_id))
-        db_connection.commit()
-
-        # Список заданий
-        tasks = [
-            "Задание 1: Изучите влияние человеческой деятельности на окружающую среду.",
-            "Задание 2: Проведите исследование о важности переработки отходов.",
-            "Задание 3: Расскажите о растениях и животных, находящихся под угрозой исчезновения."
-        ]
-
-        # Отправляем список заданий в чат
-        task_list = "\n".join(tasks)
-        await message.channel.send(f"Список заданий по экологии:\n{task_list}")
-
-        # Отправляем количество баллов в чат
-        await message.channel.send(f"{message.author.mention}, у вас {points} баллов!")
-
-    await bot.process_commands(message)
-
-# Запускаем бота
-bot.run('MTE3ODI1NTMwMDY4ODYwOTI5MA.G3kOEv.-6vv5xCZiiCTNvlCY8Gy4QMX2NLnRV3Bg8O_yw')
+app.run(debug=True)
